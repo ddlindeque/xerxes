@@ -6,14 +6,14 @@ The idea of this project is to <i>build</i> a computer from scratch, albeit a vi
     * System Bus
     * Machine with a system clock
     * Punch card reader
-  * Create a program for the ROM
+  * Create an Operating System
     * Encode a text editor using punch cards
     * Encode an assembler using punch cards
     * Encode a compiler using assembly
     * Encode an operating system using the compiler
 
 ## Virtual CPU
-Basing the CPU on the 6502.
+Base the CPU on the 6502.
 
 ## Virtual System Bus
 CPU's and Devices connect to the system bus only. CPU's and devices all read and write to addresses on the system bus.
