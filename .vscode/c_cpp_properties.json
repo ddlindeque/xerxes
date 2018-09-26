@@ -3,20 +3,20 @@
         {
             "name": "Mac",
             "compilerPath": "/Applications/Xcode.app/Contents/Developer/usr/bin/g++",
-			"includePath": [
+            "includePath": [
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/4.2.1/debug/**",
-				"${workspaceRoot}",
+                "${workspaceRoot}",
                 "${workspaceRoot}/**"
-			],
-			"defines": [],
-			"intelliSenseMode": "clang-x64",
-			"browse": {
-				"path": [
-					"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/4.2.1/debug/",
-					"${workspaceRoot}"
-				],
-				"limitSymbolsToIncludedHeaders": true,
-				"databaseFilename": ""
+            ],
+            "defines": [],
+            "intelliSenseMode": "clang-x64",
+            "browse": {
+                "path": [
+                    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/4.2.1/debug/",
+                    "${workspaceRoot}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
             },
             "cStandard": "c11",
             "cppStandard": "c++14"

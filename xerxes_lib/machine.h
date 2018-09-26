@@ -17,7 +17,11 @@ namespace dave
         auto operator =(const machine&)->machine& = delete;
         auto operator =(machine &&)->machine& = delete;
 
-        auto install_cpu(std::unique_ptr<cpu> &&cpu) -> void;
-        auto install_device(std::unique_ptr<device> &&device) -> void;
+        template<typename TCpu> auto install_cpu() -> void {
+            _bus.attach_cpu(std::make_unique<TCpu>(&_bus));
+        }
+        template<typename TDevice> auto install_device() -> void {
+            _bus.attach_device(std::make_unique<TDevice>(&_bus));
+        }
     };
 }
