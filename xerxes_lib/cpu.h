@@ -11,12 +11,11 @@ namespace dave
         cpu() = delete;
         cpu(const cpu&) = delete;
         cpu(cpu &&) = delete;
+        virtual ~cpu();
         auto operator =(const cpu&)->cpu& = delete;
         auto operator =(cpu &&)->cpu& = delete;
 
-        explicit cpu(system_bus *bus)
-            : _bus(bus)
-        {}
+        explicit cpu(system_bus *bus);
 
         virtual void clock() = 0;
     };

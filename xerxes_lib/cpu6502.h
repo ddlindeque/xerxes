@@ -29,11 +29,7 @@ namespace dave
         auto operator =(const cpu6502&)->cpu6502& = delete;
         auto operator =(cpu6502 &&)->cpu6502& = delete;
 
-        explicit cpu6502(system_bus *bus)
-            : cpu(bus)
-        {
-            _registers.PC = 0;
-        }
+        explicit cpu6502(system_bus *bus);
 
         virtual void clock() override;
     };

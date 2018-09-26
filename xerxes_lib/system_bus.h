@@ -44,12 +44,7 @@ namespace dave
             }
         }
 
-        template<typename TCpu, typename ... TArgs> inline auto add_cpu(TArgs&& ... args) -> void {
-            _cpus.push_back(std::make_unique<TCpu>(this, std::forward<TArgs...>(args)...));
-        }
-
-        template<typename TDevice, typename ... TArgs> inline auto add_device(TArgs&& ... args) -> void {
-            _devices.push_back(std::make_unique<TDevice>(this, std::forward<TArgs...>(args)...));
-        }
+        auto attach_cpu(std::unique_ptr<cpu> &&cpu) -> void;
+        auto attach_device(std::unique_ptr<device> &&device) -> void;
     };
 }

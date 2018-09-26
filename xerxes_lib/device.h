@@ -2,7 +2,6 @@
 
 #include "common.h"
 
-
 namespace dave
 {
     class system_bus;
@@ -14,12 +13,12 @@ namespace dave
         device() = delete;
         device(const device&) = delete;
         device(device &&) = delete;
+        virtual ~device();
+
         auto operator =(const device&)->device& = delete;
         auto operator =(device &&)->device& = delete;
 
-        device(system_bus *bus)
-            : _bus(bus)
-        {}
+        device(system_bus *bus);
 
         virtual void nop() = 0;
         virtual void write(const REG16 &address, const REG8 *data) = 0;

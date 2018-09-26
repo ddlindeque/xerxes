@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "cpu6502.h"
 
 #include "common.h"
@@ -317,17 +316,17 @@ namespace dave
             regs.P.Z = regs.A == 0 ? 1 : 0;
         }
     };
-    struct and {
+    struct logic_and {
         inline auto operator()(const REG8 &v1, const REG8 &v2) -> REG8 {
             return v1 & v2;
         }
     };
-    struct or {
+    struct logic_or {
         inline auto operator()(const REG8 &v1, const REG8 &v2) -> REG8 {
             return v1 | v2;
         }
     };
-    struct eor {
+    struct logic_eor {
         inline auto operator()(const REG8 &v1, const REG8 &v2) -> REG8 {
             return v1 ^ v2;
         }
@@ -516,6 +515,12 @@ namespace dave
         }
     };
 
+    cpu6502::cpu6502(system_bus *bus)
+    : cpu(bus)
+    {
+        _registers.PC = 0;
+    }
+
     void cpu6502::clock()
     {
         if (_cycles_left_for_current_operation != 0) {
@@ -615,39 +620,39 @@ namespace dave
             break;
         case 0x29:
             _cycles_left_for_current_operation = 1;
-            logic<and, imm>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, imm>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x2D:
             _cycles_left_for_current_operation = 3;
-            logic<and, abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, abs>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x25:
             _cycles_left_for_current_operation = 2;
-            logic<and, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x21:
             _cycles_left_for_current_operation = 5;
-            logic<and, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x31:
             _cycles_left_for_current_operation = 4;
-            logic<and, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x35:
             _cycles_left_for_current_operation = 3;
-            logic<and, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x3D:
             _cycles_left_for_current_operation = 3;
-            logic<and, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x39:
             _cycles_left_for_current_operation = 3;
-            logic<and, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x32:
             _cycles_left_for_current_operation = 4;
-            logic<and, ind>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_and, ind>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x0E:
             _cycles_left_for_current_operation = 5;
@@ -871,39 +876,39 @@ namespace dave
             break;
         case 0x49:
             _cycles_left_for_current_operation = 1;
-            logic<eor, imm>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, imm>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x4D:
             _cycles_left_for_current_operation = 3;
-            logic<eor, abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, abs>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x45:
             _cycles_left_for_current_operation = 2;
-            logic<eor, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x41:
             _cycles_left_for_current_operation = 5;
-            logic<eor, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x51:
             _cycles_left_for_current_operation = 4;
-            logic<eor, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x55:
             _cycles_left_for_current_operation = 3;
-            logic<eor, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x5D:
             _cycles_left_for_current_operation = 3;
-            logic<eor, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x59:
             _cycles_left_for_current_operation = 3;
-            logic<eor, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x52:
             _cycles_left_for_current_operation = 4;
-            logic<eor, ind>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_eor, ind>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x4C:
             _cycles_left_for_current_operation = 2;
@@ -1022,39 +1027,39 @@ namespace dave
             break;
         case 0x09:
             _cycles_left_for_current_operation = 1;
-            logic<or, imm>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, imm>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x0D:
             _cycles_left_for_current_operation = 3;
-            logic<or, abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, abs>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x05:
             _cycles_left_for_current_operation = 2;
-            logic<or, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, zpg>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x01:
             _cycles_left_for_current_operation = 5;
-            logic<or, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x11:
             _cycles_left_for_current_operation = 4;
-            logic<or, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x15:
             _cycles_left_for_current_operation = 3;
-            logic<or, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x1D:
             _cycles_left_for_current_operation = 3;
-            logic<or, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x19:
             _cycles_left_for_current_operation = 3;
-            logic<or, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x12:
             _cycles_left_for_current_operation = 4;
-            logic<or, ind>()(_bus, _registers, _cycles_left_for_current_operation);
+            logic<logic_or, ind>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x48:
             _cycles_left_for_current_operation = 2;
