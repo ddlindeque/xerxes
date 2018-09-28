@@ -2,15 +2,15 @@
 The idea of this project is to <i>build</i> a computer from scratch, albeit a virtual one. The current plan is as follows:
 * Phase 1
   * Create the virtual hardware
-    * CPU
-    * System Bus
-    * Machine with a system clock
-    * Punch card reader
+    * [x] CPU
+    * [ ] System Bus
+    * [ ] Machine with a system clock
+    * [ ] Punch card reader
   * Create an Operating System
-    * Encode a text editor using punch cards
-    * Encode an assembler using punch cards
-    * Encode a compiler using assembly
-    * Encode an operating system using the compiler
+    * [ ] Encode a text editor using punch cards
+    * [ ] Encode an assembler using punch cards
+    * [ ] Encode a compiler using assembly
+    * [ ] Encode an operating system using the compiler
 
 ## Virtual CPU
 Base the CPU on the 6502.
