@@ -50,4 +50,4 @@ STA $0202
 The first compiler will be a non-optimizing compiler. We will have a lexer, parser and code generator. The language will be C-like and will include the <i>asm</i> syntax for raw assembly code.
 
 ## Operating system
-The operating system is basically just a terminal window. It includes an 'nix kind of file system. It also includes the <i>pipes and filters</i> system including stdout, stderr and stdin. It also includes the '>', '<', '>>' and '|' operators.
+The operating system is basically just a terminal window. It includes an 'nix kind of file system. It also includes the <i>pipes and filters</i> system including stdout, stderr and stdin. Can be taken further by implementing telnet daemon.
