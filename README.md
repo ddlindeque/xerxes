@@ -3,7 +3,7 @@ The idea of this project is to <i>build</i> a computer from scratch, albeit a vi
 * Phase 1
   * Create the virtual hardware
     * [x] CPU
-    * [ ] System Bus
+    * [x] System Bus
     * [ ] Machine with a system clock
     * [ ] Punch card reader
   * Create an Operating System
