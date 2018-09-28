@@ -6,6 +6,8 @@ The idea of this project is to <i>build</i> a computer from scratch, albeit a vi
     * [x] System Bus
     * [ ] Machine with a system clock
     * [ ] Punch card reader
+    * [ ] Monitor
+    * [ ] Keyboard
   * Create an Operating System
     * [ ] Encode a text editor using punch cards
     * [ ] Encode an assembler using punch cards
