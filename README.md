@@ -4,6 +4,7 @@ The idea of this project is to <i>build</i> a computer from scratch, albeit a vi
   * Create the virtual hardware
     * [x] CPU
     * [x] System Bus
+    * [ ] RAM
     * [ ] Machine with a system clock
     * [ ] Punch card reader
     * [ ] Monitor
