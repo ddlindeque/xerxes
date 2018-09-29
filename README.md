@@ -51,3 +51,6 @@ The first compiler will be a non-optimizing compiler. We will have a lexer, pars
 
 ## Operating system
 The operating system is basically just a terminal window. It includes an 'nix kind of file system. It also includes the <i>pipes and filters</i> system including stdout, stderr and stdin. Can be taken further by implementing telnet daemon.
+
+## Emulator
+![Screenshot](emulator.png)
