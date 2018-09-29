@@ -47,6 +47,7 @@ namespace dave
         virtual void report_reset_line(bool value) override;
 
         void add_watch(const REG16 &addr);
+        void delete_watch(const REG16 &addr);
         void refresh_watches();
     };
 }

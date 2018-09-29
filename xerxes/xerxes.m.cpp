@@ -92,7 +92,7 @@ int main()
                     case 'd':
                         if (true) {
                             auto addr = dave::console::get_addr_from_input("Address of watch to delete: ");
-                            //debugger.delete_watch(addr);
+                            debugger.delete_watch(addr);
                         }
                         show_root_commands();
                         break;

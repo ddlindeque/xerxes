@@ -103,6 +103,15 @@ void emulator_debugger::add_watch(const REG16 &addr)
     refresh_watches();
 }
 
+void emulator_debugger::delete_watch(const REG16 &addr)
+{
+    auto f = _mem.find(addr);
+    if (f != _mem.end()) {
+        f->second.watch = false;
+        refresh_watches();
+    }
+}
+
 void emulator_debugger::refresh_watches() {
     console::clear_watches();
     for(auto &m : _mem) {
