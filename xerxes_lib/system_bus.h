@@ -1,9 +1,13 @@
-#pragma once
+#ifndef __SYSTEMBUSH
+#define __SYSTEMBUSH
 
 #include <vector>
 #include <memory>
 #include <utility>
+
 #include "device.h"
+#include "cpu.h"
+#include "debugger.h"
 
 namespace dave
 {
@@ -11,10 +15,12 @@ namespace dave
 
     class system_bus {
     private:
+        debugger *_debugger;
         std::vector<std::unique_ptr<cpu>> _cpus;
         std::vector<std::unique_ptr<device>> _devices;
     public:
-        system_bus()
+        system_bus(debugger *debugger)
+        : _debugger(debugger)
         {}
 
         system_bus(const system_bus&) = delete;
@@ -26,7 +32,7 @@ namespace dave
         bool nmi;
         bool reset;
 
-        void clock();
+        bool tick();
 
         void nop() {
             for (auto &d : _devices) {
@@ -34,6 +40,7 @@ namespace dave
             }
         }
         void write(const REG16 &address, const REG8 *data) {
+            _debugger->report_address_write(address, data);
             for (auto &d : _devices) {
                 d->write(address, data);
             }
@@ -44,7 +51,13 @@ namespace dave
             }
         }
 
-        auto attach_cpu(std::unique_ptr<cpu> &&cpu) -> void;
-        auto attach_device(std::unique_ptr<device> &&device) -> void;
+        auto attach_cpu(std::unique_ptr<cpu> &&cpu) -> dave::cpu*;
+        auto attach_device(std::unique_ptr<device> &&device) -> dave::device*;
+
+        void report_cpu_status();
+
+        void powerup();
     };
 }
+
+#endif

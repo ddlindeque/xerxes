@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __COMMONH
+#define __COMMONH
 
 namespace dave
 {
@@ -6,3 +7,5 @@ namespace dave
     typedef unsigned char REG8;
     typedef char SIGNED_REG8;
 }
+
+#endif

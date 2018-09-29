@@ -3,8 +3,8 @@
 namespace dave
 {
 
-cpu::cpu(system_bus *bus)
-: _bus(bus)
+cpu::cpu(system_bus *bus, debugger *debugger)
+: _bus(bus), _debugger(debugger)
 {}
 
 cpu::~cpu()
