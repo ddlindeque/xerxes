@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __ROMH
+#define __ROMH
 
 #include "common.h"
 #include "device.h"
@@ -25,8 +26,15 @@ namespace dave
         }
         virtual void read(const REG16 &address, REG8 *dest) override {
             if (address >= addr_lower && address <= addr_upper) {
-                *dest = _data[address];
+                *dest = _data[address - addr_lower];
+            }
+        }
+        void program(const REG16 &address, const REG8 &data) {
+            if (address >= addr_lower && address <= addr_upper) {
+                _data[address - addr_lower] = data;
             }
         }
     };
 }
+
+#endif

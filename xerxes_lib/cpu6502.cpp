@@ -1,7 +1,6 @@
 #include "cpu6502.h"
 
 #include "common.h"
-#include "rom.h"
 
 /*
 Important addresses
@@ -515,17 +514,30 @@ namespace dave
         }
     };
 
-    cpu6502::cpu6502(system_bus *bus)
-    : cpu(bus)
+    cpu6502::cpu6502(system_bus *bus, debugger *debugger)
+    : cpu(bus, debugger)
     {
-        _registers.PC = 0;
     }
 
-    void cpu6502::clock()
+    void cpu6502::powerup()
+    {
+        // initialise
+        _registers.P.I = 1;
+        _registers.P.D = 0;
+        UNPACK *upc = (UNPACK*)&_registers.PC;
+        _bus->read(0xFFFC, &upc->lo);
+        _bus->read(0xFFFD, &upc->hi);
+    }
+
+    bool cpu6502::tick()
     {
         if (_cycles_left_for_current_operation != 0) {
             _cycles_left_for_current_operation--;
-            return;
+            return false;
+        }
+
+        if (_debugger->break_on_next_instruction_ready(_registers.PC)) {
+            return true;
         }
 
         if (_bus->reset) {
@@ -540,7 +552,7 @@ namespace dave
             UNPACK *upc = (UNPACK*)&_registers.PC;
             _bus->read(0xFFFC, &upc->lo);
             _bus->read(0xFFFD, &upc->hi);
-            return;
+            return _debugger->break_on_reset();
         }
         else if (_bus->nmi && _prev_nmi == false)
         {
@@ -555,7 +567,7 @@ namespace dave
             _bus->read(0xFFFA, &upc->lo);
             _bus->read(0xFFFB, &upc->hi);
             _registers.P.I = 1;
-            return;
+            return _debugger->break_on_nmi();
         }
         else {
             // Maskable interupt (unmasked)
@@ -570,18 +582,18 @@ namespace dave
                 _bus->read(0xFFFF, &upc->hi);
                 _registers.P.I = 1;
                 _cycles_left_for_current_operation = 6;
-                return;
+                return _debugger->break_on_interupt();
             }
         }
 
-        REG8 oc;
+        REG8 oc = 0;
         _bus->read(_registers.PC, &oc);
         _registers.PC++;
         switch (oc) {
         case 0x00:
             _cycles_left_for_current_operation = 6;
             brk()(_bus, _registers);
-            break;
+            return _debugger->break_on_break() || _debugger->break_after_instruction();
         case 0x69:
             _cycles_left_for_current_operation = 1;
             adc<imm>()(_bus, _registers, _cycles_left_for_current_operation);
@@ -1090,5 +1102,31 @@ namespace dave
             _registers.Y = stack_pull(_bus, _registers);
             break;
         }
+
+        return _debugger->break_after_instruction();
+    }
+
+    void cpu6502::report_status()
+    {
+        _debugger->report_cpu_register("PC", _registers.PC);
+        _debugger->report_cpu_register("Y", _registers.Y);
+        _debugger->report_cpu_register("X", _registers.X);
+        _debugger->report_cpu_register("S", _registers.S);
+        _debugger->report_cpu_register("A", _registers.A);
+        _debugger->report_cpu_register("C", _registers.P.C != 0);
+        _debugger->report_cpu_register("Z", _registers.P.Z != 0);
+        _debugger->report_cpu_register("I", _registers.P.I != 0);
+        _debugger->report_cpu_register("D", _registers.P.D != 0);
+        _debugger->report_cpu_register("B", _registers.P.B != 0);
+        _debugger->report_cpu_register("V", _registers.P.V != 0);
+        _debugger->report_cpu_register("N", _registers.P.N != 0);
+        _debugger->report_nmi_line(_bus->nmi);
+        _debugger->report_irq_line(_bus->irq);
+        _debugger->report_reset_line(_bus->reset);
+    }
+
+    void cpu6502::set_pc(const REG16 &addr)
+    {
+        _registers.PC = addr;
     }
 }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __CPU6502H
+#define __CPU6502H
 
 #include "system_bus.h"
 #include "cpu.h"
@@ -29,8 +30,15 @@ namespace dave
         auto operator =(const cpu6502&)->cpu6502& = delete;
         auto operator =(cpu6502 &&)->cpu6502& = delete;
 
-        explicit cpu6502(system_bus *bus);
+        explicit cpu6502(system_bus *bus, debugger *debugger);
 
-        virtual void clock() override;
+        virtual void powerup() override;
+        virtual bool tick() override;
+
+        virtual void report_status() override;
+
+        virtual void set_pc(const REG16 &addr) override;
     };
 }
+
+#endif
