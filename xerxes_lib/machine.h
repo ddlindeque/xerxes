@@ -11,6 +11,8 @@ namespace dave
 {
     class machine {
     private:
+        bool _irq_line = false;
+        bool _nmi_line = false;
         system_bus _bus;
         debugger *_debugger;
     public:
@@ -25,8 +27,8 @@ namespace dave
             return (TCpu*)_bus.attach_cpu(std::make_unique<TCpu>(&_bus, _debugger));
         }
 
-        template<typename TDevice> TDevice* install_device() {
-            return (TDevice*)_bus.attach_device(std::make_unique<TDevice>(&_bus));
+        template<typename TDevice, typename ... TArgs> TDevice* install_device(TArgs ... args) {
+            return (TDevice*)_bus.attach_device(std::make_unique<TDevice>(&_bus, _debugger, std::forward<TArgs>(args)...));
         }
 
         void reset(bool value);

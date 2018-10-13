@@ -11,8 +11,8 @@ namespace dave
     private:
         REG8 _data[addr_upper - addr_lower + 1] = {};
     public:
-        ram(system_bus *bus)
-            : device(bus)
+        ram(system_bus *bus, debugger *debugger)
+            : device(bus, debugger)
         {}
         ram() = delete;
         ram(const ram&) = delete;

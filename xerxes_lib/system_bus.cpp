@@ -2,13 +2,35 @@
 
 namespace dave
 {
+    bool system_bus::irq()
+    {
+        if (_irq_line) return true;
+        for(auto &d : _devices) {
+            if (d->irq()) return true;
+        }
+        return false;
+    }
+
+    bool system_bus::nmi()
+    {
+        if (_nmi_line) return true;
+        for(auto &d : _devices) {
+            if (d->nmi()) return true;
+        }
+        return false;
+    }
+
     bool system_bus::tick()
     {
+        _break_addr_written = false;
         bool must_break = false;
+        for (auto &d : _devices) {
+            d->tick();
+        }
         for (auto &c : _cpus) {
             must_break |= c->tick();
         }
-        return must_break;
+        return must_break || _break_addr_written;
     }
 
     dave::cpu* system_bus::attach_cpu(std::unique_ptr<cpu> &&cpu)

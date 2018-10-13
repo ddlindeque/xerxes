@@ -92,17 +92,17 @@ Page 0xE0-0xFF (Page 224-255): Kernal ROM
 namespace dave
 {
     struct UNPACK {
-        REG8 hi;
         REG8 lo;
+        REG8 hi;
     };
 
-    // The next byte is the value
+    // The next byte is the value "#$22"
     struct imm {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             return regs.PC++;
         }
     };
-    // The next two bytes is the address of the value
+    // The next two bytes is the address of the value "$D012"
     struct abs {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo, hi;
@@ -113,7 +113,7 @@ namespace dave
             return ((REG16)hi << 8) | (REG16)lo;
         }
     };
-    // The next two bytes is the address with offset x of the value
+    // The next two bytes is the address with offset x of the value "$D012,X"
     struct abs_x {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo, hi;
@@ -130,7 +130,7 @@ namespace dave
             return addr;
         }
     };
-    // The next two bytes is the address with offset y of the value
+    // The next two bytes is the address with offset y of the value "$D012,Y"
     struct abs_y {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo, hi;
@@ -147,7 +147,7 @@ namespace dave
             return addr;
         }
     };
-    // The next byte is the address in page zero of the value
+    // The next byte is the address in page zero of the value "$A0"
     struct zpg {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo;
@@ -156,7 +156,7 @@ namespace dave
             return (REG16)lo;
         }
     };
-    // The next byte is the address in page zero with offset x of the value
+    // The next byte is the address in page zero with offset x of the value "$A0,X"
     struct zpg_x {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo;
@@ -166,7 +166,7 @@ namespace dave
             return (REG16)lo;
         }
     };
-    // The next byte is the address in page zero with offset y of the value
+    // The next byte is the address in page zero with offset y of the value ($A0,Y)
     struct zpg_y {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 lo;
@@ -177,6 +177,7 @@ namespace dave
         }
     };
     // The next byte is the address in page zero of the address of the value
+    // General indirection via page zero
     struct ind {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 v, lo, hi;
@@ -188,7 +189,8 @@ namespace dave
             return ((REG16)hi << 8) | (REG16)lo;
         }
     };
-    // The next byte is the address in page zero of the address with offset X (no carry) of the value
+    // The next byte is the address in page zero of the address with offset X (no carry) of the value "($0A,X)"
+    // Lookup table in page zero, with X the index
     struct ind_x {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 v, lo, hi;
@@ -198,10 +200,11 @@ namespace dave
             bus->read((REG16)v, &lo);
             v++;
             bus->read((REG16)v, &hi);
-            return ((REG16)hi << 8) | (REG16)lo;
+            return (((REG16)hi) << 8) | (REG16)lo;
         }
     };
-    // The next byte is the address in page zero of the address with offset Y (carry) of the value 
+    // The next byte is the address in page zero of the address with offset Y (carry) of the value "($A0),Y"
+    // Indirection in page zero, with Y offset of the destination
     struct ind_y {
         static inline auto get_addr(system_bus *bus, cpu6502::registers &regs, int &cycles) -> REG16 {
             REG8 v, lo, hi;
@@ -362,18 +365,19 @@ namespace dave
             regs.P.D = 0;
         }
     };
-    template<typename _AM> struct adc {
-        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+
+    template<typename _AM> struct adcsbc {
+    protected:
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles, const REG8 &m, REG8 &c) const -> void {
             if (regs.P.D != 0) {
                 cycles++;
             }
-            REG8 m;
-            bus->read(_AM::get_addr(bus, regs, cycles), &m);
+            
             REG16 res;
             if (regs.P.D == 0) {
                 res = regs.A + 0x06;
-                auto t2 = res ^ m ^ regs.P.C;                   // sum without carry propagation
-                res += m + regs.P.C;                   // provisional sum
+                auto t2 = res ^ m ^ c;                   // sum without carry propagation
+                res += m + c;                   // provisional sum
                 t2 = res ^ t2;                  // all the binary carry bits
                 t2 = ~t2 & 0x10;         // just the BCD carry bits
                 if (t2 != 0) {
@@ -381,15 +385,34 @@ namespace dave
                 }
             }
             else {
-                res = regs.A + m + regs.P.C;
+                res = regs.A + m + c;
             }
 
             regs.P.V = ((regs.A ^ res) & (m ^ res) & 0x80) == 0 ? 0 : 1; // overflow when the sign bit was the same for A & M, and it's changed value.
-            regs.P.C = (res & 0x0100) == 0 ? 0 : 1;
+            c = (res & 0x0100) == 0 ? 0 : 1;
             res &= 0xFF;
             regs.P.Z = res == 0 ? 1 : 0;
             regs.P.N = is_neg((REG8)res);
             regs.A = (REG8)res;
+        }
+    };
+    template<typename _AM> struct adc : private adcsbc<_AM> {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            REG8 m;
+            bus->read(_AM::get_addr(bus, regs, cycles), &m);
+            REG8 c = regs.P.C;
+            adcsbc<_AM>::operator()(bus, regs, cycles, m, c);
+            regs.P.C = c;
+        }
+    };
+    template<typename _AM> struct sbc : private adcsbc<_AM> {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            REG8 m;
+            bus->read(_AM::get_addr(bus, regs, cycles), &m);
+            m ^= 0xFF; // Flip every bit
+            REG8 c = !regs.P.C;
+            adcsbc<_AM>::operator()(bus, regs, cycles, m, c);
+            regs.P.C = !c;
         }
     };
     template<typename _AM> struct asl {
@@ -431,7 +454,7 @@ namespace dave
     template<> struct lsr<acc> {
         inline auto operator()(system_bus *bus, cpu6502::registers &regs) const -> void {
             regs.P.C = regs.A & 0x01;
-            REG16 res = (REG16)regs.A << 1;
+            REG16 res = (REG16)regs.A >> 1;
             res &= 0xFF;
             regs.P.N = 0;
             regs.P.Z = (res) == 0 ? 1 : 0;
@@ -513,6 +536,77 @@ namespace dave
             ld<_AM>()(bus, regs, regs.Y, cycles);
         }
     };
+    template<typename _AM> struct rol {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            auto addr = _AM::get_addr(bus, regs, cycles);
+            REG8 m;
+            bus->read(addr, &m);
+            REG16 res = ((REG16)m) << 1;
+            res |= regs.P.C;
+            regs.P.C = (res & 0x0100) != 0;
+            m = res & 0xFF;
+            regs.P.N = is_neg(m);
+            regs.P.Z = m == 0 ? 1 : 0;
+            bus->write(addr, &m);
+        }
+    };
+    template<> struct rol<acc> {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs) const -> void {
+            REG16 res = (REG16)regs.A << 1;
+            res |= regs.P.C;
+            regs.P.C = (res & 0x0100) != 0;
+            res &= 0xFF;
+            regs.P.N = is_neg((REG8)res);
+            regs.P.Z = (res) == 0 ? 1 : 0;
+            regs.A = (REG8)res;
+        }
+    };
+    template<typename _AM> struct ror {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            auto addr = _AM::get_addr(bus, regs, cycles);
+            REG8 m;
+            bus->read(addr, &m);
+            // 0000 0001 << 7 = 1000 0000
+            REG8 c = regs.P.C << 7;
+            regs.P.C = m & 0x01;
+            REG16 res = ((REG16)m) >> 1;
+            res |= c;
+            m = res & 0xFF;
+            regs.P.N = 0;
+            regs.P.Z = m == 0 ? 1 : 0;
+            bus->write(addr, &m);
+        }
+    };
+    template<> struct ror<acc> {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs) const -> void {
+            REG8 c = regs.P.C << 7;
+            regs.P.C = regs.A & 0x01;
+            REG16 res = (REG16)regs.A >> 1;
+            res |= c;
+            res &= 0xFF;
+            regs.P.N = 0;
+            regs.P.Z = (res) == 0 ? 1 : 0;
+            regs.A = (REG8)res;
+        }
+    };
+    template<typename _AM> struct sta {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            auto addr = _AM::get_addr(bus, regs, cycles);
+            bus->write(addr, &regs.A);
+        }
+    };
+    template<typename _AM> struct sty {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            auto addr = _AM::get_addr(bus, regs, cycles);
+            bus->write(addr, &regs.Y);
+        }
+    };
+    template<typename _AM> struct stx {
+        inline auto operator()(system_bus *bus, cpu6502::registers &regs, int &cycles) const -> void {
+            auto addr = _AM::get_addr(bus, regs, cycles);
+            bus->write(addr, &regs.X);
+        }
+    };
 
     cpu6502::cpu6502(system_bus *bus, debugger *debugger)
     : cpu(bus, debugger)
@@ -542,6 +636,7 @@ namespace dave
 
         if (_bus->reset) {
             // the reset line is high - jump to the reset code
+            _registers.S = 0xFF;
             _cycles_left_for_current_operation = 5;
             UNPACK *p = (UNPACK*)&_registers.PC;
             stack_push(_bus, _registers, p->hi);
@@ -554,7 +649,7 @@ namespace dave
             _bus->read(0xFFFD, &upc->hi);
             return _debugger->break_on_reset();
         }
-        else if (_bus->nmi && _prev_nmi == false)
+        else if (_bus->nmi() && _prev_nmi == false)
         {
             // Non-maskable interupt
             _cycles_left_for_current_operation = 6;
@@ -572,7 +667,7 @@ namespace dave
         else {
             // Maskable interupt (unmasked)
             _prev_nmi = false;
-            if (_bus->irq && _registers.P.I == 0) {
+            if (_bus->irq() && _registers.P.I == 0) {
                 UNPACK *p = (UNPACK*)&_registers.PC;
                 stack_push(_bus, _registers, p->hi);
                 stack_push(_bus, _registers, p->lo);
@@ -629,6 +724,42 @@ namespace dave
         case 0x72:
             _cycles_left_for_current_operation = 4;
             adc<ind>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xE9:
+            _cycles_left_for_current_operation = 1;
+            sbc<imm>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xED:
+            _cycles_left_for_current_operation = 3;
+            sbc<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xE5:
+            _cycles_left_for_current_operation = 2;
+            sbc<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xE1:
+            _cycles_left_for_current_operation = 5;
+            sbc<ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xF1:
+            _cycles_left_for_current_operation = 4;
+            sbc<ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xF5:
+            _cycles_left_for_current_operation = 3;
+            sbc<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xFD:
+            _cycles_left_for_current_operation = 3;
+            sbc<abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xF9:
+            _cycles_left_for_current_operation = 3;
+            sbc<abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xF2:
+            _cycles_left_for_current_operation = 4;
+            sbc<ind>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
         case 0x29:
             _cycles_left_for_current_operation = 1;
@@ -1034,7 +1165,7 @@ namespace dave
             _cycles_left_for_current_operation = 5;
             lsr<abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
-        case 0xEA:
+        case 0xEA: // nop
             _cycles_left_for_current_operation = 1;
             break;
         case 0x09:
@@ -1073,7 +1204,7 @@ namespace dave
             _cycles_left_for_current_operation = 4;
             logic<logic_or, ind>()(_bus, _registers, _cycles_left_for_current_operation);
             break;
-        case 0x48:
+        case 0x48: // PHA
             _cycles_left_for_current_operation = 2;
             stack_push(_bus, _registers, _registers.A);
             break;
@@ -1101,6 +1232,146 @@ namespace dave
             _cycles_left_for_current_operation = 3;
             _registers.Y = stack_pull(_bus, _registers);
             break;
+        case 0x2A:
+            _cycles_left_for_current_operation = 1;
+            rol<acc>()(_bus, _registers);
+            break;
+        case 0x26:
+            _cycles_left_for_current_operation = 4;
+            rol<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x36:
+            _cycles_left_for_current_operation = 5;
+            rol<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x2E:
+            _cycles_left_for_current_operation = 5;
+            rol<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x3E:
+            _cycles_left_for_current_operation = 6;
+            rol<abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x40: // RTI (Return from interupt)
+            if (true) {
+                _cycles_left_for_current_operation = 5;
+                *((REG8*)&_registers.P) = stack_pull(_bus, _registers);
+                UNPACK *p = (UNPACK*)&_registers.PC;
+                p->lo = stack_pull(_bus, _registers);
+                p->hi = stack_pull(_bus, _registers);    
+            }
+            break;
+        case 0x60: // RTS (Return from subroutine)
+            if (true) {
+                _cycles_left_for_current_operation = 5;
+                UNPACK *p = (UNPACK*)&_registers.PC;
+                p->lo = stack_pull(_bus, _registers);
+                p->hi = stack_pull(_bus, _registers);
+                _registers.PC++;
+            }
+            break;
+        case 0x6A:
+            _cycles_left_for_current_operation = 1;
+            ror<acc>()(_bus, _registers);
+            break;
+        case 0x66:
+            _cycles_left_for_current_operation = 4;
+            ror<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x76:
+            _cycles_left_for_current_operation = 5;
+            ror<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x6E:
+            _cycles_left_for_current_operation = 5;
+            ror<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x7E:
+            _cycles_left_for_current_operation = 6;
+            ror<abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x85:
+            _cycles_left_for_current_operation = 2;
+            sta<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x95:
+            _cycles_left_for_current_operation = 3;
+            sta<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x8D:
+            _cycles_left_for_current_operation = 3;
+            sta<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x9D:
+            _cycles_left_for_current_operation = 4;
+            sta<abs_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x99:
+            _cycles_left_for_current_operation = 4;
+            sta<abs_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x81:
+            _cycles_left_for_current_operation = 5;
+            sta<ind_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x91:
+            _cycles_left_for_current_operation = 5;
+            sta<ind_y>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x84:
+            _cycles_left_for_current_operation = 2;
+            sty<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x94:
+            _cycles_left_for_current_operation = 3;
+            sty<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x8C:
+            _cycles_left_for_current_operation = 3;
+            sty<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x86:
+            _cycles_left_for_current_operation = 2;
+            stx<zpg>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x96:
+            _cycles_left_for_current_operation = 3;
+            stx<zpg_x>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0x8E:
+            _cycles_left_for_current_operation = 3;
+            stx<abs>()(_bus, _registers, _cycles_left_for_current_operation);
+            break;
+        case 0xAA: // TAX
+            _cycles_left_for_current_operation = 1;
+            _registers.X = _registers.A;
+            _registers.P.N = is_neg(_registers.X);
+            break;
+        case 0x8A: // TXA
+            _cycles_left_for_current_operation = 1;
+            _registers.A = _registers.X;
+            _registers.P.N = is_neg(_registers.A);
+            break;
+        case 0xA8: // TAY
+            _cycles_left_for_current_operation = 1;
+            _registers.Y = _registers.A;
+            _registers.P.N = is_neg(_registers.Y);
+            break;
+        case 0x98: // TYA
+            _cycles_left_for_current_operation = 1;
+            _registers.A = _registers.Y;
+            _registers.P.N = is_neg(_registers.A);
+            break;
+        case 0xBA: // TSX
+            _cycles_left_for_current_operation = 1;
+            _registers.X = _registers.S;
+            _registers.P.N = is_neg(_registers.X);
+            break;
+        case 0x9A: // TXS
+            _cycles_left_for_current_operation = 1;
+            _registers.S = _registers.X;
+            _registers.P.N = is_neg(_registers.S);
+            break;
         }
 
         return _debugger->break_after_instruction();
@@ -1120,8 +1391,8 @@ namespace dave
         _debugger->report_cpu_register("B", _registers.P.B != 0);
         _debugger->report_cpu_register("V", _registers.P.V != 0);
         _debugger->report_cpu_register("N", _registers.P.N != 0);
-        _debugger->report_nmi_line(_bus->nmi);
-        _debugger->report_irq_line(_bus->irq);
+        _debugger->report_nmi_line(_bus->nmi());
+        _debugger->report_irq_line(_bus->irq());
         _debugger->report_reset_line(_bus->reset);
     }
 

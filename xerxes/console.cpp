@@ -9,43 +9,61 @@
 /*
 
 The terminal window will be layed out as follows
-  0         1         2         3         4         5         6         7         8
-  0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-0 +--------------- MONITOR ----------------+ +--------- CPU ---------+ +------- PC -------+
-1 |                                        | | PC = 0x5687 -> 0x5688 | | 3424:69 ADC REGX | 
-2 |                                        | | Y  = 0x35   -> 0x35   | | 3435:40 'A'      |
-3 |                                        | | X  = 0x78             | | 3436:40 'A'      |
-4 |                                        | | S  = 0x75             | | 3437:60 'a'      |
-5 |                                        | | A  = 0x34             | +------------------+
-6 |                                        | | C  = 1                | +------ STACK -----+
-7 |                                        | | Z  = 0                | | 3324:43 'a'      |
-8 |                                        | | I  = 0                | |                  |
-9 |                                        | | D  = 1                | |                  |
-0 |                                        | | B  = 0                | |                  |
-1 |                                        | | V  = 1                | |                  |
-2 |                                        | | N  = 0                | |                  |
-3 |                                        | + TICKS = 55456345      | |                  |
-4 |                                        | +-----------------------+ +------------------+
-5 |                                        | +--------- BUS ---------+ +------ WATCH -----+
-6 |                                        | | 0x4543: 0x33 '3'      | | 3334: 12 'a'     |
-7 |                                        | |                       | |                  |
-8 |                                        | |                       | |                  |
-9 |                                        | |                       | |                  |
-0 |                                        | |                       | |                  |
-1 |                                        | |                       | |                  |
-2 |                                        | |                       | |                  |
-3 |                                        | |                       | |                  |
-4 |                                        | |                       | |                  |
-5 |                                        | |                       | |                  |
-6 +----------------------------------------+ +-----------------------+ +------------------+
+  0         1         2         3         4         5         6         7         8         9         0         1         2         3
+  01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+0 +--------------- MONITOR ----------------+ +--------- CPU ---------+ +------- PC -------+ +- PC break -+ +--- Card Reader ---+
+1 |                                        | | PC = 0x5687 -> 0x5688 | | 3424:69 ADC REGX | | E101       | |                   |
+2 |                                        | | Y  = 0x35   -> 0x35   | | 3435:40 'A'      | |            | | | irq signalled | | 
+3 |                                        | | X  = 0x78             | | 3436:40 'A'      | |            | |                   |
+4 |                                        | | S  = 0x75             | | 3437:60 'a'      | |            | | | requested     | | 
+5 |                                        | | A  = 0x34             | +------------------+ |            | |                   |
+6 |                                        | | C  = 1                | +------ STACK -----+ |            | | instr: run        |
+7 |                                        | | Z  = 0                | | 3324:43 'a'      | |            | |                   |
+8 |                                        | | I  = 0                | |                  | |            | | buffer: 0x54      |  
+9 |                                        | | D  = 1                | |                  | |            | +-------------------+
+0 |                                        | | B  = 0                | |                  | |            |
+1 |                                        | | V  = 1                | |                  | |            |
+2 |                                        | | N  = 0                | |                  | |            |
+3 |                                        | + TICKS = 55456345      | |                  | |            |
+4 |                                        | +-----------------------+ +------------------+ +------------+
+5 |                                        | +--------- BUS ---------+ +------ WATCH -----+ +- BUS break +
+6 |                                        | | 0x4543: 0x33 '3'      | | 3334: 12 'a'     | |            |
+7 |                                        | |                       | |                  | |            |
+8 |                                        | |                       | |                  | |            |
+9 |                                        | |                       | |                  | |            |
+0 |                                        | |                       | |                  | |            |
+1 |                                        | |                       | |                  | |            |
+2 |                                        | |                       | |                  | |            |
+3 |                                        | |                       | |                  | |            |
+4 |                                        | |                       | |                  | |            |
+5 |                                        | |                       | |                  | |            |
+6 +----------------------------------------+ +-----------------------+ +------------------+ +------------+
 7 > 
 8------alerts-------------
 9 | nmi | | irq | | reset |
 0 input label: input value
+1 break on: | nmi | | irq | | reset |
+  01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 */
 
 namespace dave
 {
+
+void write_text(const std::string &text, int color = 0)
+{
+    for(auto &ch : text) {
+        addch(ch | color);
+    }
+}
+
+void write_button(const std::string &text, bool value)
+{
+    auto c = value ? COLOR_PAIR(3) : COLOR_PAIR(4);
+    addch(' ' | c);
+    write_text(text, c);
+    addch(' ' | c);
+    console::reset_cursor();
+}
 
 void console::initialize()
 {
@@ -65,6 +83,14 @@ void console::initialize()
 int console::getkey()
 {
     return getch();
+}
+
+bool console::try_getkey(int &key)
+{
+    nodelay(stdscr, true);
+    key = getkey();
+    nodelay(stdscr, false);
+    return key != ERR;
 }
 
 void console::teardown()
@@ -100,15 +126,7 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(0, 16);
-    addch(' ');
-    addch('M');
-    addch('O');
-    addch('N');
-    addch('I');
-    addch('T');
-    addch('O');
-    addch('R');
-    addch(' ');
+    write_text(" MONITOR ");
 
     // Draw the CPU window
     move(0, 43);
@@ -130,11 +148,7 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(0, 53);
-    addch(' ');
-    addch('C');
-    addch('P');
-    addch('U');
-    addch(' ');
+    write_text(" CPU ");
     move(1,45); addch('P'); addch('C'); addch(' '); addch('=');
     move(2,45); addch('Y'); addch(' '); addch(' '); addch('=');
     move(3,45); addch('X'); addch(' '); addch(' '); addch('=');
@@ -169,11 +183,7 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(15, 53);
-    addch(' ');
-    addch('B');
-    addch('U');
-    addch('S');
-    addch(' ');
+    write_text(" BUS ");
 
     // Draw the PC window
     move(0, 69);
@@ -195,10 +205,7 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(0, 77);
-    addch(' ');
-    addch('P');
-    addch('C');
-    addch(' ');
+    write_text(" PC ");
 
     // Draw the STACK window
     move(6, 69);
@@ -220,13 +227,7 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(6, 76);
-    addch(' ');
-    addch('S');
-    addch('T');
-    addch('A');
-    addch('C');
-    addch('K');
-    addch(' ');
+    write_text(" STACK ");
 
     // Draw the WATCH window
     move(15, 69);
@@ -248,14 +249,85 @@ void console::draw_screen()
     }
     addch(ACS_LRCORNER);
     move(15, 76);
-    addch(' ');
-    addch('W');
-    addch('A');
-    addch('T');
-    addch('C');
-    addch('H');
-    addch(' ');
+    write_text(" WATCH ");
 
+    // Draw the PC break window
+    move(0, 90);
+    addch(ACS_ULCORNER);
+    for(int i = 0; i < 12; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_URCORNER);
+    for(int i = 0; i < 13; i++) {
+        move(i + 1, 90);
+        addch(ACS_VLINE);
+        move(i + 1, 103);
+        addch(ACS_VLINE);
+    }
+    move(14, 90);
+    addch(ACS_LLCORNER);
+    for(int i = 0; i < 12; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_LRCORNER);
+    move(0, 92);
+    write_text(" PC break ");
+
+    // Draw the BUS break window
+    move(15, 90);
+    addch(ACS_ULCORNER);
+    for(int i = 0; i < 12; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_URCORNER);
+    for(int i = 0; i < 11; i++) {
+        move(i + 16, 90);
+        addch(ACS_VLINE);
+        move(i + 16, 103);
+        addch(ACS_VLINE);
+    }
+    move(26, 90);
+    addch(ACS_LLCORNER);
+    for(int i = 0; i < 12; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_LRCORNER);
+    move(15, 92);
+    write_text(" BUS break ");
+
+    // Draw the Card Reader window
+    move(0, 105);
+    addch(ACS_ULCORNER);
+    for(int i = 0; i < 19; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_URCORNER);
+    for(int i = 0; i < 8; i++) {
+        move(i + 1, 105);
+        addch(ACS_VLINE);
+        move(i + 1, 125);
+        addch(ACS_VLINE);
+    }
+    move(9, 105);
+    addch(ACS_LLCORNER);
+    for(int i = 0; i < 19; i++) {
+        addch(ACS_HLINE);
+    }
+    addch(ACS_LRCORNER);
+    move(0, 109);
+    write_text(" Card Reader ");
+    move(2, 107); write_button("irq signalled", false);
+    move(4, 107); write_button("requested", false);
+    move(6, 107); write_text("instr: ");
+    move(8,107); write_text("buffer:");
+
+    // Break On
+    move(31, 0); write_text("break on: ");
+    move(31, 10); write_button("nmi", true);
+    move(31, 18); write_button("irq", true);
+    move(31, 26); write_button("reset", true);
+
+    // Move to reset
     move(27, 0);
     addch('>');
     reset_cursor();
@@ -364,7 +436,7 @@ void console::show_operation(const std::string &op)
     for(auto &ch : op) {
         addch(ch);
     }
-    for(int i = 0; i < 50; i++) {
+    for(int i = 0; i < 80; i++) {
         addch(' ');
     }
     clear_alert();
@@ -434,6 +506,15 @@ void write_data_addr(const REG16 &addr, const REG8 &data, const int &color = 0)
     }
 }
 
+void write_addr(const REG16 &addr)
+{
+    std::stringstream stm;
+    stm << std::setfill('0') << std::hex << std::setw(4) << (uint)addr;
+    for(auto &ch : stm.str()) {
+        addch(ch);
+    }
+}
+
 void console::add_bus(const REG16 &addr, const REG8 *data)
 {
     if (bus_line == 10) return;
@@ -456,136 +537,176 @@ void console::report_pc(system_bus *bus, const REG16 &addr)
     stm << std::setfill('0') << std::hex << std::setw(2) << (uint)op;
     stm << ' ';
     switch(op) {
-        case 0x00: stm << "BRK"; break;
-        case 0x69: stm << "ADC IMM"; break;
-        case 0x6D: stm << "ADC ABS"; break;
-        case 0x65: stm << "ADC ZPG"; break;
+        case 0x00: stm << "BRK     "; break;
+        case 0x69: stm << "ADC IMM "; break;
+        case 0x6D: stm << "ADC ABS "; break;
+        case 0x65: stm << "ADC ZPG "; break;
         case 0x61: stm << "ADC INDX"; break;
         case 0x71: stm << "ADC INDY"; break;
         case 0x75: stm << "ADC ZPGX"; break;
         case 0x7D: stm << "ADC ABSX"; break;
         case 0x79: stm << "ADC ABSY"; break;
-        case 0x72: stm << "ADC IND"; break;
-        case 0x29: stm << "AND IMM"; break;
-        case 0x2D: stm << "AND ABS"; break;
-        case 0x25: stm << "AND ZPG"; break;
+        case 0x72: stm << "ADC IND "; break;
+        case 0xE9: stm << "SBC IMM "; break;
+        case 0xED: stm << "SBC ABS "; break;
+        case 0xE5: stm << "SBC ZPG "; break;
+        case 0xE1: stm << "SBC INDX"; break;
+        case 0xF1: stm << "SBC INDY"; break;
+        case 0xF5: stm << "SBC ZPGX"; break;
+        case 0xFD: stm << "SBC ABSX"; break;
+        case 0xF9: stm << "SBC ABSY"; break;
+        case 0xF2: stm << "SBC IND "; break;
+        case 0x29: stm << "AND IMM "; break;
+        case 0x2D: stm << "AND ABS "; break;
+        case 0x25: stm << "AND ZPG "; break;
         case 0x21: stm << "AND INDX"; break;
         case 0x31: stm << "AND INDY"; break;
         case 0x35: stm << "AND ZPGX"; break;
         case 0x3D: stm << "AND ABSX"; break;
         case 0x39: stm << "AND ABSY"; break;
-        case 0x32: stm << "AND IND"; break;
-        case 0x0E: stm << "ASL ABS"; break;
-        case 0x06: stm << "ASL ZPG"; break;
-        case 0x0A: stm << "ASL ACC"; break;
+        case 0x32: stm << "AND IND "; break;
+        case 0x0E: stm << "ASL ABS "; break;
+        case 0x06: stm << "ASL ZPG "; break;
+        case 0x0A: stm << "ASL ACC "; break;
         case 0x16: stm << "ASL ZPGX"; break;
         case 0x1E: stm << "ASL ABSX"; break;
-        case 0x90: stm << "BCC"; break;
-        case 0xB0: stm << "BCS"; break;
-        case 0xF0: stm << "BEQ"; break;
-        case 0x30: stm << "BMI"; break;
-        case 0xD0: stm << "BNE"; break;
-        case 0x10: stm << "BPL"; break;
-        case 0x80: stm << "BRA"; break;
-        case 0x50: stm << "BVC"; break;
-        case 0x70: stm << "BVS"; break;
-        case 0x89: stm << "BIT IMM"; break;
-        case 0x2C: stm << "BIT ABS"; break;
-        case 0x24: stm << "BIT ZPG"; break;
+        case 0x90: stm << "BCC     "; break;
+        case 0xB0: stm << "BCS     "; break;
+        case 0xF0: stm << "BEQ     "; break;
+        case 0x30: stm << "BMI     "; break;
+        case 0xD0: stm << "BNE     "; break;
+        case 0x10: stm << "BPL     "; break;
+        case 0x80: stm << "BRA     "; break;
+        case 0x50: stm << "BVC     "; break;
+        case 0x70: stm << "BVS     "; break;
+        case 0x89: stm << "BIT IMM "; break;
+        case 0x2C: stm << "BIT ABS "; break;
+        case 0x24: stm << "BIT ZPG "; break;
         case 0x34: stm << "BIT ZPGX"; break;
         case 0x3C: stm << "BIT ABSX"; break;
-        case 0x18: stm << "CLC"; break;
-        case 0xD8: stm << "CLD"; break;
-        case 0x58: stm << "CLI"; break;
-        case 0xB8: stm << "CLV"; break;
-        case 0x38: stm << "SEC"; break;
-        case 0xF8: stm << "SED"; break;
-        case 0x78: stm << "SEI"; break;
-        case 0xC9: stm << "CMP IMM"; break;
-        case 0xCD: stm << "CMP ABS"; break;
-        case 0xC5: stm << "CMP ZPG"; break;
+        case 0x18: stm << "CLC     "; break;
+        case 0xD8: stm << "CLD     "; break;
+        case 0x58: stm << "CLI     "; break;
+        case 0xB8: stm << "CLV     "; break;
+        case 0x38: stm << "SEC     "; break;
+        case 0xF8: stm << "SED     "; break;
+        case 0x78: stm << "SEI     "; break;
+        case 0xC9: stm << "CMP IMM "; break;
+        case 0xCD: stm << "CMP ABS "; break;
+        case 0xC5: stm << "CMP ZPG "; break;
         case 0xC1: stm << "CMP INDX"; break;
         case 0xD1: stm << "CMP INDY"; break;
         case 0xD5: stm << "CMP ZPGX"; break;
         case 0xDD: stm << "CMP ABSX"; break;
         case 0xD9: stm << "CMP ABSY"; break;
-        case 0xD2: stm << "CMP IND"; break;
-        case 0xE0: stm << "CPX IMM"; break;
-        case 0xEC: stm << "CPX ABS"; break;
-        case 0xE4: stm << "CPX ZPG"; break;
-        case 0xC0: stm << "CPY IMM"; break;
-        case 0xCC: stm << "CPY ABS"; break;
-        case 0xC4: stm << "CPY ZPG"; break;
-        case 0xCE: stm << "DEC ABS"; break;
-        case 0xC6: stm << "DEC ZPG"; break;
-        case 0x3A: stm << "DEC ACC"; break;
+        case 0xD2: stm << "CMP IND "; break;
+        case 0xE0: stm << "CPX IMM "; break;
+        case 0xEC: stm << "CPX ABS "; break;
+        case 0xE4: stm << "CPX ZPG "; break;
+        case 0xC0: stm << "CPY IMM "; break;
+        case 0xCC: stm << "CPY ABS "; break;
+        case 0xC4: stm << "CPY ZPG "; break;
+        case 0xCE: stm << "DEC ABS "; break;
+        case 0xC6: stm << "DEC ZPG "; break;
+        case 0x3A: stm << "DEC ACC "; break;
         case 0xD6: stm << "DEC ZPGX"; break;
         case 0xDE: stm << "DEC ABSX"; break;
         case 0xCA: stm << "DEC REGX"; break;
         case 0x88: stm << "DEC REGY"; break;
-        case 0xEE: stm << "INC ABS"; break;
-        case 0xE6: stm << "INC ZPG"; break;
-        case 0x1A: stm << "INC ACC"; break;
+        case 0xEE: stm << "INC ABS "; break;
+        case 0xE6: stm << "INC ZPG "; break;
+        case 0x1A: stm << "INC ACC "; break;
         case 0xF6: stm << "INC ZPGX"; break;
         case 0xFE: stm << "INC ABSX"; break;
         case 0xE8: stm << "INC REGX"; break;
         case 0xC8: stm << "INC REGY"; break;
-        case 0x49: stm << "XOR IMM"; break;
-        case 0x4D: stm << "XOR ABS"; break;
-        case 0x45: stm << "XOR ZPG"; break;
+        case 0x49: stm << "XOR IMM "; break;
+        case 0x4D: stm << "XOR ABS "; break;
+        case 0x45: stm << "XOR ZPG "; break;
         case 0x41: stm << "XOR INDX"; break;
         case 0x51: stm << "XOR INXY"; break;
         case 0x55: stm << "XOR ZPGX"; break;
         case 0x5D: stm << "XOR ABSX"; break;
         case 0x59: stm << "XOR ABSY"; break;
-        case 0x52: stm << "XOR IND"; break;
-        case 0x4C: stm << "JMP ABS"; break;
+        case 0x52: stm << "XOR IND "; break;
+        case 0x4C: stm << "JMP ABS "; break;
         case 0x7C: stm << "JMP INDX"; break;
         case 0x6C: stm << "JMP IND"; break;
-        case 0x20: stm << "JSR ABS"; break;
-        case 0xA9: stm << "LDA IMM"; break;
-        case 0xAD: stm << "LDA ABS"; break;
-        case 0xA5: stm << "LDA ZPG"; break;
+        case 0x20: stm << "JSR ABS "; break;
+        case 0xA9: stm << "LDA IMM "; break;
+        case 0xAD: stm << "LDA ABS "; break;
+        case 0xA5: stm << "LDA ZPG "; break;
         case 0xA1: stm << "LDA INDX"; break;
         case 0xB1: stm << "LDA INDY"; break;
         case 0xB5: stm << "LDA ZPGX"; break;
         case 0xBD: stm << "LDA ABSX"; break;
         case 0xB9: stm << "LDA ABSY"; break;
-        case 0xB2: stm << "LDA IND"; break;
+        case 0xB2: stm << "LDA IND "; break;
         case 0xA2: stm << "LDX IMM"; break;
-        case 0xAE: stm << "LDX ABS"; break;
-        case 0xA6: stm << "LDX ZPG"; break;
+        case 0xAE: stm << "LDX ABS "; break;
+        case 0xA6: stm << "LDX ZPG "; break;
         case 0xBE: stm << "LDX ABSY"; break;
         case 0xB6: stm << "LDX ZPGY"; break;
-        case 0xA0: stm << "LDY IMM"; break;
-        case 0xAC: stm << "LDY ABS"; break;
-        case 0xA4: stm << "LDY ZPG"; break;
+        case 0xA0: stm << "LDY IMM "; break;
+        case 0xAC: stm << "LDY ABS "; break;
+        case 0xA4: stm << "LDY ZPG "; break;
         case 0xB4: stm << "LDY ZPGX"; break;
         case 0xBC: stm << "LDY ABSX"; break;
-        case 0x4E: stm << "LSR ABS"; break;
-        case 0x46: stm << "LSR ZPG"; break;
-        case 0x4A: stm << "LSR ACC"; break;
+        case 0x4E: stm << "LSR ABS "; break;
+        case 0x46: stm << "LSR ZPG "; break;
+        case 0x4A: stm << "LSR ACC "; break;
         case 0x56: stm << "LSR ZPGX"; break;
         case 0x5E: stm << "LSR ABSX"; break;
-        case 0xEA: stm << "NOP"; break;
-        case 0x09: stm << "OR IMM"; break;
-        case 0x0D: stm << "OR ABS"; break;
-        case 0x05: stm << "OR ZPG"; break;
-        case 0x01: stm << "OR INDX"; break;
-        case 0x11: stm << "OR INDY"; break;
-        case 0x15: stm << "OR ZPGX"; break;
-        case 0x1D: stm << "OR ABSX"; break;
-        case 0x19: stm << "OR ABSY"; break;
-        case 0x12: stm << "OR IND"; break;
-        case 0x48: stm << "PUSH A"; break;
-        case 0x08: stm << "PUSH P"; break;
-        case 0xDA: stm << "PUSH X"; break;
-        case 0x68: stm << "PULL A"; break;
-        case 0x28: stm << "PULL P"; break;
-        case 0xFA: stm << "PULL X"; break;
-        case 0x7A: stm << "PULL Y"; break;
+        case 0xEA: stm << "NOP     "; break;
+        case 0x09: stm << "OR IMM  "; break;
+        case 0x0D: stm << "OR ABS  "; break;
+        case 0x05: stm << "OR ZPG  "; break;
+        case 0x01: stm << "OR INDX "; break;
+        case 0x11: stm << "OR INDY "; break;
+        case 0x15: stm << "OR ZPGX "; break;
+        case 0x1D: stm << "OR ABSX "; break;
+        case 0x19: stm << "OR ABSY "; break;
+        case 0x12: stm << "OR IND  "; break;
+        case 0x48: stm << "PUSH A  "; break;
+        case 0x08: stm << "PUSH P  "; break;
+        case 0xDA: stm << "PUSH X  "; break;
+        case 0x68: stm << "PULL A  "; break;
+        case 0x28: stm << "PULL P  "; break;
+        case 0xFA: stm << "PULL X  "; break;
+        case 0x7A: stm << "PULL Y  "; break;
+        case 0x2A: stm << "ROL ACC "; break;
+        case 0x26: stm << "ROL ZPG "; break;
+        case 0x36: stm << "ROL ZPGX"; break;
+        case 0x2E: stm << "ROL ABS "; break;
+        case 0x3E: stm << "ROL ABSX"; break;
+        case 0x40: stm << "RTI     "; break;
+        case 0x60: stm << "RTS     "; break;
+        case 0x6A: stm << "ROR ACC "; break;
+        case 0x66: stm << "ROR ZPG "; break;
+        case 0x76: stm << "ROR ZPGX"; break;
+        case 0x6E: stm << "ROR ABS "; break;
+        case 0x7E: stm << "ROR ABSX"; break;
+        case 0x85: stm << "STA ZPG "; break;
+        case 0x95: stm << "STA ZPGX"; break;
+        case 0x8D: stm << "STA ABS "; break;
+        case 0x9D: stm << "STA ABSX"; break;
+        case 0x99: stm << "STA ABSY"; break;
+        case 0x81: stm << "STA INDX"; break;
+        case 0x91: stm << "STA INDY"; break;
+        case 0x84: stm << "STY ZPG "; break;
+        case 0x94: stm << "STY ZPGX"; break;
+        case 0x8C: stm << "STY ABS "; break;
+        case 0x86: stm << "STX ZPG "; break;
+        case 0x96: stm << "STX ZPGX"; break;
+        case 0x8E: stm << "STX ABS "; break;
+        case 0xAA: stm << "TAX     "; break;
+        case 0x8A: stm << "TXA     "; break;
+        case 0xA8: stm << "TAY     "; break;
+        case 0x98: stm << "TYA     "; break;
+        case 0xBA: stm << "TSX     "; break;
+        case 0x9A: stm << "TXS     "; break;
         default:
-            stm << "???";
+            stm << "????????";
             break;
     }
 
@@ -615,17 +736,6 @@ void console::report_s(system_bus *bus, const REG8 &value)
         addr++;
         line++;
     }
-}
-
-void write_button(const std::string &text, bool value)
-{
-    auto c = value ? COLOR_PAIR(3) : COLOR_PAIR(4);
-    addch(' ' | c);
-    for(auto &ch : text) {
-        addch(ch | c);
-    }
-    addch(' '| c);
-    console::reset_cursor();
 }
 
 void console::update_nmi_line(bool value)
@@ -716,6 +826,69 @@ void console::add_watch(const REG16 &addr, const REG8 &cur_value, bool value_cha
     move(next_watch_line, 71);
     next_watch_line++;
     write_data_addr(addr, cur_value, value_changed ? COLOR_PAIR(1) : 0);
+}
+
+int next_pc_break_line = 1;
+int next_bus_break_line = 16;
+
+void console::clear_breakpoints()
+{
+    for(int line = 1; line < 14; line++) {
+        move(line, 91);
+        for (int col = 91; col < 103; col++) {
+            addch(' ');
+        }
+    }
+    next_pc_break_line = 1;
+    for(int line = 16; line < 26; line++) {
+        move(line, 91);
+        for (int col = 91; col < 103; col++) {
+            addch(' ');
+        }
+    }
+    next_bus_break_line = 16;
+}
+
+void console::add_bus_breakpoint(const REG16 &addr)
+{
+    if (next_bus_break_line == 25) return;
+    move(next_bus_break_line, 92);
+    next_bus_break_line++;
+    write_addr(addr);
+}
+
+void console::add_pc_breakpoint(const REG16 &addr)
+{
+    if (next_pc_break_line == 13) return;
+    move(next_pc_break_line, 92);
+    next_pc_break_line++;
+    write_addr(addr);
+}
+
+void console::report_punchcardreader_status(bool irqHigh, bool nextByteRequested, REG8 status, REG8 byteInBuffer)
+{
+    move(2, 107); write_button("irq signalled", irqHigh);
+    move(4, 107); write_button("requested", nextByteRequested);
+    move(6, 115);
+    switch(status) {
+        case 0: write_text("          "); break;
+        case 1: write_text("data      "); break;
+        case 2: write_text("addr lo   "); break;
+        case 3: write_text("addr hi   "); break;
+        case 4: write_text("run       "); break;
+        default: write_text("??????????"); break;
+    }
+    std::stringstream stm;
+    register_writer<uint8_t>()(stm, byteInBuffer);
+    move(8, 115); 
+    write_text(stm.str());
+}
+
+void console::set_break_config(bool break_on_nmi, bool break_on_irq, bool break_on_reset)
+{
+    move(31, 10); write_button("nmi", break_on_nmi);
+    move(31, 18); write_button("irq", break_on_irq);
+    move(31, 26); write_button("reset", break_on_reset);
 }
 
 }

@@ -6,7 +6,7 @@ namespace dave
 {
 
 machine::machine(debugger *debugger)
-: _debugger(debugger), _bus(debugger)
+: _debugger(debugger), _bus(debugger, _irq_line, _nmi_line)
 {
     _debugger->attach_system_bus(&_bus);
 }
@@ -32,6 +32,9 @@ void machine::run()
         _debugger->tick();
         // Carry on - but sleep so we have the correct speed
         std::this_thread::yield();
+        if (_debugger->break_asap()) {
+            break;
+        }
     }
     _debugger->tick();
 }
@@ -48,12 +51,12 @@ void machine::reset(bool value)
 
 void machine::nmi(bool value)
 {
-    _bus.nmi = value;
+    _nmi_line = value;
 }
 
 void machine::irq(bool value)
 {
-    _bus.irq = value;
+    _irq_line = value;
 }
 
 void machine::toggle_reset()
@@ -63,12 +66,12 @@ void machine::toggle_reset()
 
 void machine::toggle_nmi()
 {
-    _bus.nmi = !_bus.nmi;
+    _nmi_line = !_nmi_line;
 }
 
 void machine::toggle_irq()
 {
-    _bus.irq = !_bus.irq;
+    _irq_line = !_irq_line;
 }
 
 }

@@ -20,5 +20,8 @@ default: ../bin/xerxes_lib.a
 ../bin/system_bus.o: system_bus.h device.h cpu.h debugger.h system_bus.cpp
 	$(CC) system_bus.cpp -o $@
 
-../bin/xerxes_lib.a: ../bin/common.o ../bin/cpu.o ../bin/cpu6502.o ../bin/device.o ../bin/machine.o ../bin/system_bus.o
+../bin/punchcardreader.o: system_bus.h device.h common.h punchcardreader.h punchcardreader.cpp
+	$(CC) punchcardreader.cpp -o $@
+
+../bin/xerxes_lib.a: ../bin/common.o ../bin/cpu.o ../bin/cpu6502.o ../bin/device.o ../bin/machine.o ../bin/system_bus.o ../bin/punchcardreader.o
 	~/llvm/obj/bin/llvm-ar -rc $@ $^

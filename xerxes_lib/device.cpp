@@ -3,8 +3,8 @@
 namespace dave
 {
 
-device::device(system_bus *bus)
-    : _bus(bus)
+device::device(system_bus *bus, debugger *debugger)
+    : _bus(bus), _debugger(debugger)
 {}
 
 device::~device()

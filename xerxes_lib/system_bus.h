@@ -15,12 +15,15 @@ namespace dave
 
     class system_bus {
     private:
+        bool &_irq_line;
+        bool &_nmi_line;
         debugger *_debugger;
         std::vector<std::unique_ptr<cpu>> _cpus;
         std::vector<std::unique_ptr<device>> _devices;
+        bool _break_addr_written;
     public:
-        system_bus(debugger *debugger)
-        : _debugger(debugger)
+        system_bus(debugger *debugger, bool &irq_line, bool &nmi_line)
+        : _debugger(debugger), _irq_line(irq_line), _nmi_line(nmi_line)
         {}
 
         system_bus(const system_bus&) = delete;
@@ -28,8 +31,8 @@ namespace dave
         auto operator =(const system_bus&)->system_bus& = delete;
         auto operator =(system_bus &&)->system_bus& = delete;
 
-        bool irq;
-        bool nmi;
+        bool irq();
+        bool nmi();
         bool reset;
 
         bool tick();
@@ -44,6 +47,7 @@ namespace dave
             for (auto &d : _devices) {
                 d->write(address, data);
             }
+            _break_addr_written = _debugger->break_on_bus_address_changed(address);
         }
         void read(const REG16 &address, REG8 *dest) {
             for (auto &d : _devices) {

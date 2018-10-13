@@ -22,6 +22,9 @@
         "algorithm": "cpp",
         "ios": "cpp",
         "__bit_reference": "cpp",
-        "__string": "cpp"
+        "__string": "cpp",
+        "istream": "cpp",
+        "iosfwd": "cpp",
+        "vector": "cpp"
     }
 }

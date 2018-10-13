@@ -13,8 +13,8 @@ namespace dave
             console::update_char_on_virtual_monitor(addr-addr_lower, _data[addr-addr_lower]);
         }
     public:
-        monitor(system_bus *bus)
-            : device(bus)
+        monitor(system_bus *bus, debugger *debugger)
+            : device(bus, debugger)
         {}
         monitor() = delete;
         monitor(const monitor&) = delete;

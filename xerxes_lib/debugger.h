@@ -19,6 +19,8 @@ namespace dave
         virtual bool break_on_nmi() = 0;
         virtual bool break_on_interupt() = 0;
         virtual bool break_on_break() = 0;
+        virtual bool break_asap() = 0;
+        virtual bool break_on_bus_address_changed(const REG16 &addr) = 0;
 
         virtual void report_cpu_register(const std::string &name, const uint8_t &value) = 0;
         virtual void report_cpu_register(const std::string &name, const uint16_t &value) = 0;
@@ -29,6 +31,8 @@ namespace dave
         virtual void report_nmi_line(bool value) = 0;
         virtual void report_irq_line(bool value) = 0;
         virtual void report_reset_line(bool value) = 0;
+
+        virtual void report_punchcardreader_status(bool irqHigh, bool nextByteRequested, REG8 status, REG8 byteInBuffer) = 0;
     };
 }
 
