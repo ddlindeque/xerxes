@@ -11,7 +11,7 @@ default: ../bin/xerxes
 ../bin/console.o: console.h ../xerxes_lib/common.h ../xerxes_lib/system_bus.h console.cpp
 	$(CC) console.cpp -o $@
 
-../bin/xerxes.m.o: ../xerxes_lib/machine.h ../xerxes_lib/cpu.h ../xerxes_lib/rom.h ../xerxes_lib/ram.h monitor.h emulator_debugger.h console.h xerxes.m.cpp
+../bin/xerxes.m.o: ../xerxes_lib/machine.h ../xerxes_lib/cpu.h ../xerxes_lib/rom.h ../xerxes_lib/ram.h monitor.h emulator_debugger.h console.h xerxes.m.cpp ../software/romv1.h ../software/romv2.h
 	$(CC) xerxes.m.cpp -o $@
 
 ../bin/xerxes: ../bin/xerxes.m.o ../bin/monitor.o ../bin/emulator_debugger.o ../bin/console.o ../bin/xerxes_lib.a

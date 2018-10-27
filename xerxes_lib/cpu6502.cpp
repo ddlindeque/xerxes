@@ -374,7 +374,7 @@ namespace dave
             }
             
             REG16 res;
-            if (regs.P.D == 0) {
+            if (regs.P.D != 0) {
                 res = regs.A + 0x06;
                 auto t2 = res ^ m ^ c;                   // sum without carry propagation
                 res += m + c;                   // provisional sum
@@ -1394,10 +1394,5 @@ namespace dave
         _debugger->report_nmi_line(_bus->nmi());
         _debugger->report_irq_line(_bus->irq());
         _debugger->report_reset_line(_bus->reset);
-    }
-
-    void cpu6502::set_pc(const REG16 &addr)
-    {
-        _registers.PC = addr;
     }
 }

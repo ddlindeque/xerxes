@@ -16,7 +16,7 @@
 
 ; Boot entry point
 ; Set stack pointer to $FF
-0xE000 A2 ; LDX $A2
+0xE000 A2 ; LDX $FF
 0xE001 FF
 ; TXS
 0xE002 9A ; TXS

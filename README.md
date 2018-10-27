@@ -13,8 +13,8 @@ The idea of this project is to <i>build</i> a computer from scratch, albeit a vi
     * [ ] HDD
   * Create an Operating System
     * Encode a few system functions using punch cards
-      * [ ] Punch card reader driver
-      * [ ] Monitor driver
+      * [x] Punch card reader driver
+      * [x] Monitor driver
       * [ ] Keyboard driver
       * [ ] HDD driver
     * [ ] Encode a text editor using punch cards

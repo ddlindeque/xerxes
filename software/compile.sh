@@ -1,0 +1,1 @@
+../bin/intern -i main.asm -i monitor-driver.asm -i data.asm -o software.pc

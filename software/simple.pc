@@ -1,0 +1,10 @@
+; Change address to #$0200
+O _  _ _ _ _  _ _ _ _ ; $00 (lo)
+O O  _ _ _ _  _ _ O _ ; $02 (hi)
+
+; Create an instruction to just loop
+; JMP $0200 - Absolute addressing
+; $4C $00 $02
+_ O  _ O _ _  O O _ _ ; $4C
+_ O  _ _ _ _  _ _ _ _ ; $00
+_ O  _ _ _ _  _ _ O _ ; $02

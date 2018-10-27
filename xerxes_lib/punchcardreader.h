@@ -10,7 +10,7 @@
 
 namespace dave
 {
-    template<REG16 _Control, REG16 _Status, REG16 _Data> class punchcardreader : public device {
+    template<REG16 _Control, REG16 _Status, REG16 _Register> class punchcardreader : public device {
     public:
         enum class instruction {
             no_instruction = 0,
@@ -24,7 +24,7 @@ namespace dave
         size_t _ticks_to_interupt;
         
         REG8 _status;
-        REG8 _buffer;
+        REG8 _register;
 
         size_t _next_line;
         std::vector<std::pair<REG8, REG8> > _card;
@@ -71,7 +71,7 @@ namespace dave
                 }
             }
             _status = _card.empty() ? (REG8)instruction::no_instruction : _card[0].first;
-            _buffer = _card.empty() ? 0 : _card[0].second;
+            _register = _card.empty() ? 0 : _card[0].second;
         }
         punchcardreader() = delete;
         punchcardreader(const punchcardreader&) = delete;
@@ -88,12 +88,13 @@ namespace dave
                     _irq = true;
                 }
             }
-            _debugger->report_punchcardreader_status(_irq, _ticks_to_interupt > 0, _status, _buffer);
+            _debugger->report_punchcardreader_status(_irq, _ticks_to_interupt > 0, _status, _register);
         }
         virtual void nop() override { }
         virtual void write(const REG16 &address, const REG8 *data) override {
             if (address == _Control) {
                 _irq = false;
+                _status = 0;
                 switch(*data) {
                     case 0x01: // Initialise
                         _next_line = 0;
@@ -101,17 +102,17 @@ namespace dave
                     case 0x02: // Request next instruction
                         if (_next_line == _card.size()) {
                             _status = (REG8)instruction::run_program;
-                            _ticks_to_interupt = rand() % 500;
+                            _ticks_to_interupt = (rand() % 300) + 200;
                         }
                         else {
-                            _buffer = _card[_next_line].second;
+                            _register = _card[_next_line].second;
                             _status = _card[_next_line].first;
                             _next_line++;
-                            _ticks_to_interupt = rand() % 500;
+                            _ticks_to_interupt = (rand() % 300) + 200;
                         }
                         break;
                 }
-                _debugger->report_punchcardreader_status(_irq, _ticks_to_interupt > 0, _status, _buffer);
+                _debugger->report_punchcardreader_status(_irq, _ticks_to_interupt > 0, _status, _register);
             }
         }
         virtual void read(const REG16 &address, REG8 *dest) override {
@@ -119,10 +120,12 @@ namespace dave
                 case _Status:
                     _irq = false;
                     *dest = _status;
+                    _status = 0;
                     break;
-                case _Data:
+                case _Register:
                     _irq = false;
-                    *dest = _buffer;
+                    _status = 0;
+                    *dest = _register;
                     break;
             } 
         }

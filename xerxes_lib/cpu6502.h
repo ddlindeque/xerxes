@@ -36,8 +36,6 @@ namespace dave
         virtual bool tick() override;
 
         virtual void report_status() override;
-
-        virtual void set_pc(const REG16 &addr) override;
     };
 }
 

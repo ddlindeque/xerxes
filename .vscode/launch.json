@@ -15,6 +15,18 @@
             "environment": [],
             "externalConsole": true,
             "MIMode": "lldb"
+        },
+        {
+            "name": "Start intern",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/intern",
+            "args": [ "-i", "./software/main.asm", "-i", "./software/monitor-driver.asm", "-i", "./software/data.asm" ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb"
         }
     ]
 }

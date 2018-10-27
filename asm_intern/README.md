@@ -3,52 +3,52 @@
 * Immediate  
 The next byte is the value
 ```
-LDA #$45
+LDA $45
 ```
 * Absolute  
 The next two bytes is the address of the value
 ```
-LDA $1234
+LDA #$1234
 ```
 * Absolute offset X  
 The next two bytes is the address with offset in X
 ```
-LDA $1234,X
+LDA #$1234 + X
 ```
 * Absolute offset Y  
 The nexst two bytes is the address with offset in Y
 ```
-LDA $1234,Y
+LDA #$1234 + Y
 ```
 * Zero Page  
 The next byte is the address in page zero
 ```
-LDA $12
+LDA #$12
 ```
 * Zero Page offset X  
 The next byte is the address in page zero with offset in X
 ```
-LDA $12,X
+LDA #$12 + X
 ```
 * Zero Page offset Y  
 The next byte is the address in page zero with offset in Y
 ```
-LDA $12,Y
+LDA #$12 + Y
 ```
 * Indirect  
 The next byte is an address in page zero. The two bytes at that address is the address of the value.
 ```
-LDA ($12)
+LDA [#$12]
 ```
 * Indirect offset X  
 The next byte is an address in page zero offset by value in X. The two bytes at that address is the address of the value. Offset is of the first address (before indirection).
 ```
-LDA ($12,X)
+LDA [#$12 + X]
 ```
 * Indirect offset Y
 The next byte is an address in page zero. The two bytes at that address is the address of the value offset by the value in Y. Offset is of the second address (after indirection).
 ```
-LDA ($12),Y
+LDA [#$12] + Y
 ```
 * Register A
 The operation will be performed directly on register A.
@@ -67,54 +67,48 @@ INC Y
 ```
 ## Assembly representation of addressing modes
 * Immediate  
-To specify an immediate addressing mode, the <i>address</i> is specified using a literal value. The literal value can be specified as a decimal number, i.e. ```1000```, or a hex number, i.e. ```$3E8```.
+To specify an immediate addressing mode, the <i>value</i> is specified using a number expression. The literal number must be a single byte only.
 ```asm
-BASE $200
-CSTR "Hello world" ; This takes 11 bytes of memory starting at 0x0200
-@myaddr1: CLI ; Instruction at address labelled 'myaddr1'
-
-BASE $300
-LDA $200 ; Load the byte at address 0x0200
+BASE $0300
+LDA $20 ; Load the value $20 into A
 ```
 * Absolute  
-Absolute addressing mode is specified using a label. If the label is in page zero, then page zero addressing is used.
+Absolute addressing mode is specified using an address expresison. If the address is in page zero, then page zero addressing is used.
 ```asm
-BASE $200
-CSTR "Hello world" ; This takes 11 bytes of memory starting at 0x0200
+BASE $0200
 @myaddr1: CLI ; Instruction at address labelled 'myaddr1'
 
-BASE $300
+BASE $0300
 LDA @myaddr1 ; Load the byte at label '@myaddr1'
 ```
 * Absolute offset X  
-Specified using a label and <i>+X</i>
+Specified using an address expression and <i>+X</i>
 ```asm
 LDA @myaddr1+X ; Load the byte at @myaddress1 + (value of X)
 ```
 * Absolute offset Y  
-Specified using a label and <i>+Y</i>
+Specified using an address expression and <i>+Y</i>
 ```asm
 LDA @myaddr1+Y ; Load the byte at @myaddress1 + (value of Y)
 ```
 * Zero Page, Zero Page X and Zero Page Y  
-Same as Absolute ?, but label is address in page zero.
+Same as Absolute, but the address is in page zero.
 * Indirect  
-Specify using a <i>derefence</i> of a label. The label **must** be an address in page zero.
+We must read the address from the address specified.
 ```asm
-LDA (@myaddr)
+LDA [@myaddr]
 ```
 * Indirect offset X  
-Specify using a <i>dereference</i> of a label with the X value
+Specify using an address to an address with offset X
 ```asm
-LDA (@myaddr+X)
+LDA [@myaddr+X]
 ```
 * Indirect offset Y  
-Specify using a <i>dereference</i> of a label with the Y value
+Specify using an address with offset Y of an address
 ```asm
-LDA (@myaddr)+Y
+LDA [@myaddr]+Y
 ```
 * Register A, X, Y  
-Specify the register directly
 ```asm
 INC A
 INC X
@@ -126,9 +120,14 @@ The syntax has the following features
 * Comments start with ';' to the end of the line.
 * Statements can be metadata, data or instructions.
   * Metadata  
-    The only metadata statement is the <i>BASE</i> statement which indicates where in memory the next statement should be located.
+    * The <i>BASE</i> statement indicates where in memory the next statement should be located.  
     ```
-    BASE $200 ; The next statement will be located at address $200
+    BASE #$0200 ; The next statement will be located at address #$0200
+    ; To make a literal an address, use the #
+    ```
+    * The <i>START</i> statement indicates where in memory the executable program starts.
+    ```
+    START #$0200 ; The executable program starts at address 200 (hex)
     ```
   * Data  
     Data statements are statements to write data to memory locations.
@@ -140,13 +139,9 @@ The syntax has the following features
       ```
       DATA $1234 ; Writes $34 to this address and $12 to the next (note the lo byte goes first)
       ```
-    * Character  
+    * We can also write the address of a label, which would write two byte (lo byte first)
       ```
-      DATA 'a' ; Write the ASCII value of 'a' to this address
-      ```
-    * String  
-      ```
-      DATA "This is my string" ; 'T' at this address, 'h' the next, etc.
+      DATA @someLabel
       ```
 * A statement has an optional label.
 ```
@@ -210,28 +205,88 @@ DATA $12 ; No label
   * TYA
   * TSX
   * TXS
-### Document
-```bison
-DOCUMENT: INSTRUCTIONS
-INSTRUCTIONS:
-    INSTRUCTION
-  | INSTRUCTIONS '\n' INSTRUCTION
-INSTRUCTION:
-    opcode
-  | opcode PARAMETER
-  | label ':' opcode
-  | label ':' opcode PARAMETER
-PARAMETER:
-    number
-  | char
-  | string
-  | label
-  | label '+' 'X'
-  | label '+' 'Y'
-  | '(' label ')'
-  | '(' label '+' 'X' ');
-  | '(' label ')' + 'Y'
-  | 'A'
-  | 'X'
-  | 'Y'
+* Constants can be defined using the %name syntax.
 ```
+%baseAddress = $0200 + %ofs
+BASE %baseAddress
+```
+* Expressions can be used anywhere a literal value is required. Precedence can be specified using the '(' ')' syntax, i.e.: ```%var = (%x + 3) * %y```. The following operators will be supported:
+  * ```+```
+  * ```-```
+  * ```*```
+### Document
+```yacc
+INSTRUCTION:
+    instr
+  | instr EXPRESSION
+  | label ':' INSTRUCTION
+  | constant '=' EXPRESSION
+
+EXPRESSION:
+    byte
+  | word
+  | constant
+  | label
+  | reg
+  | '#' EXPRESSION
+  | '(' EXPRESSION ')'
+  | EXPRESSION '+' EXPRESSION
+  | EXPRESSION '-' EXPRESSION
+  | EXPRESSION '*' EXPRESSION
+  | '[' EXPRESSION ']'
+  | 'lo' '(' EXPRESSION ')'
+  | 'hi' '(' EXPRESSION ')'
+```
+### Type system
+#### Supported types
+An expression can have any of the following types
+* byte
+* word
+* addr
+* reference (address of an address or a register)
+#### Expression Types
+The expression productions will have the following types
+| Expression | Type
+|--- |---
+| byte | **byte**
+| word | **word**
+| label | **addr**
+| reg | **reference**
+| '#' EXPRESSION | **address**
+| '(' EXPRESSION ')' | <i>type of inner expression</i>
+| EXPRESSION '+' EXPRESSION | <i>See below</i>
+| EXPRESSION '-' EXPRESSION | <i>See below</i>
+| EXPRESSION '*' EXPRESSION | <i>See below</i>
+| '[' EXPRESSION ']' | **addr**; <i>inner must be addr</i>
+| 'lo' '(' EXPRESSION ')' | **byte**
+| 'hi' '(' EXPRESSION ')' | **byte**
+#### Operators
+We have the following resulting types for operators
+* '+'  
+
+|        | byte | word  | addr
+|---      |---   |---   |---
+| byte    | byte | word | addr
+| word    | word | word | addr
+| addr    | addr | addr | 
+
+* '-'
+
+|        | byte | word  | addr
+|---      |---   |---   |---
+| byte    | byte |      |
+| word    | word | word |
+| addr    | addr | addr | byte
+
+* '*'
+
+|        | byte | word | addr
+|---      |---   |---   |---
+| byte    | word | word |
+| word    | word | word |
+| addr    |      |      | 
+#### Functions
+##### lo
+Returns the lo byte of a value or address
+##### hi
+Returns the hi byte of a value or address

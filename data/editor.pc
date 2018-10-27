@@ -1,6 +1,0 @@
-; Simple first program
-O _  _ _ _ _  _ _ _ _ ; lo = 0x00
-O O  _ _ _ _  _ _ O _ ; hi = 0x02
-_ O  _ O _ _  O O _ _ ; 0x4C: JMP ABS
-_ O  _ _ _ _  _ _ _ _ ; 0x00
-_ O  _ _ _ _  _ _ O _ ; 0x02

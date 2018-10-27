@@ -24,8 +24,6 @@ namespace dave
         virtual bool tick() = 0;
 
         virtual void report_status() {}
-
-        virtual void set_pc(const REG16 &addr) = 0;
     };
 }
 

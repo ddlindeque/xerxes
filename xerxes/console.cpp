@@ -501,6 +501,9 @@ void write_data_addr(const REG16 &addr, const REG8 &data, const int &color = 0)
     if (isprint((int)data)) {
         stm << " '" << (char)data << '\'';
     }
+    else {
+        stm << "    ";
+    }
     for(auto &ch : stm.str()) {
         addch(ch | color);
     }
